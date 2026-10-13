@@ -1,4 +1,6 @@
 
+import * as cheerio from "cheerio";
+
 export async function GET() {
     try {
         const response = await fetch(
@@ -13,29 +15,24 @@ export async function GET() {
         }
 
         const html = await response.text();
+        const $ = cheerio.load(html);
 
-        // Parse the HTML table
-        const document = new DOMParser().parseFromString(
-            html,
-            "text/html"
-        );
-
-        const rows = document.querySelectorAll("tr");
         const standings = [];
         let division = "";
 
-        rows.forEach(row => {
-            const cells = Array.from(row.querySelectorAll("td"));
-            const values = cells.map(cell => cell.textContent.trim());
+        $("tr").each((_, row) => {
+            const header = $(row).find(".divisionHeader").first();
 
-            // Track which division the rows belong to
-            const header = row.querySelector(".divisionHeader");
-            if (header) {
-                division = header.textContent.trim();
+            if (header.length) {
+                division = header.text().trim();
                 return;
             }
 
-            // Skip headers and rows that aren't team standings
+            const values = $(row)
+                .find("td")
+                .map((_, cell) => $(cell).text().trim())
+                .get();
+
             if (values.length < 10) return;
 
             const position = Number(values[0]);
