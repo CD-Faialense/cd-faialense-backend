@@ -1,6 +1,26 @@
 
 import * as cheerio from "cheerio";
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "https://cd-faialense.github.io",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+};
+
+function jsonResponse(data, status = 200) {
+    return Response.json(data, {
+        status,
+        headers: corsHeaders
+    });
+}
+
+export async function OPTIONS() {
+    return new Response(null, {
+        status: 204,
+        headers: corsHeaders
+    });
+}
+
 export async function GET() {
     try {
         const response = await fetch(
@@ -8,10 +28,10 @@ export async function GET() {
         );
 
         if (!response.ok) {
-            return Response.json({
+            return jsonResponse({
                 error: "Could not retrieve BSSL standings",
                 status: response.status
-            }, { status: 502 });
+            }, 502);
         }
 
         const html = await response.text();
@@ -61,86 +81,12 @@ export async function GET() {
             });
         });
 
-        return Response.json({standings},{headers: {"Access-Control-Allow-Origin": "*"}});
+        return jsonResponse({ standings });
 
     } catch (error) {
-        return Response.json({
+        return jsonResponse({
             error: "Failed to process BSSL standings",
             details: error.message
-        }, { status: 500 });
+        }, 500);
     }
-}
-
-
-const standingsBody = document.getElementById("standings-body");
-
-if (standingsBody) {
-    async function loadStandings() {
-        try {
-            const response = await fetch(
-                "https://cd-faialense-backend.vercel.app/api/standings"
-            );
-
-            if (!response.ok) {
-                throw new Error("Could not load standings");
-            }
-
-            const data = await response.json();
-
-            // Show Division 1 only
-            const teams = data.standings.filter(
-                team => team.division === "Division 1"
-            );
-
-            standingsBody.replaceChildren();
-
-            teams.forEach(team => {
-                const row = document.createElement("tr");
-
-                if (team.team === "CD Faialense") {
-                    row.classList.add("faialense-row");
-                }
-
-                const values = [
-                    team.position,
-                    team.team,
-                    team.played,
-                    team.wins,
-                    team.losses,
-                    team.draws,
-                    team.goalsFor,
-                    team.goalsAgainst,
-                    team.goalDifference > 0
-                        ? `+${team.goalDifference}`
-                        : team.goalDifference,
-                    team.points
-                ];
-
-                values.forEach(value => {
-                    const cell = document.createElement("td");
-                    cell.textContent = value;
-                    row.appendChild(cell);
-                });
-
-                standingsBody.appendChild(row);
-            });
-
-        } catch (error) {
-            console.error("Standings error:", error);
-
-            standingsBody.replaceChildren();
-
-            const row = document.createElement("tr");
-            const cell = document.createElement("td");
-
-            cell.colSpan = 10;
-            cell.textContent =
-                "Standings could not load. Please try again later.";
-
-            row.appendChild(cell);
-            standingsBody.appendChild(row);
-        }
-    }
-
-    loadStandings();
 }
