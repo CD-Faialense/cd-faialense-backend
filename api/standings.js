@@ -21,10 +21,22 @@ export async function OPTIONS() {
     });
 }
 
-export async function GET() {
+
+export async function GET(request) {
+    const url = new URL(request.url);
+    const year = url.searchParams.get("year") || "2026";
+
+    const allowedYears = ["2022", "2023", "2024", "2025", "2026"];
+
+    if (!allowedYears.includes(year)) {
+        return jsonResponse({
+            error: "Invalid season. Choose a year from 2022 to 2026."
+        }, 400);
+    }
+
     try {
         const response = await fetch(
-            "https://www.bssl.com/scripts/tables.php?format=full&year=2026"
+            `https://www.bssl.com/scripts/tables.php?format=full&year=${year}`
         );
 
         if (!response.ok) {
@@ -36,7 +48,6 @@ export async function GET() {
 
         const html = await response.text();
         const $ = cheerio.load(html);
-
         const standings = [];
         let division = "";
 
@@ -62,9 +73,7 @@ export async function GET() {
                 !Number.isInteger(position) ||
                 !Number.isInteger(played) ||
                 !values[1]
-            ) {
-                return;
-            }
+            ) return;
 
             standings.push({
                 division,
@@ -81,8 +90,7 @@ export async function GET() {
             });
         });
 
-        return jsonResponse({ standings });
-
+        return jsonResponse({ standings, year });
     } catch (error) {
         return jsonResponse({
             error: "Failed to process BSSL standings",
