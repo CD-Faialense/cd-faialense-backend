@@ -26,11 +26,11 @@ export async function GET(request) {
     const url = new URL(request.url);
     const year = url.searchParams.get("year") || "2026";
 
-    const allowedYears = ["2022", "2023", "2024", "2025", "2026"];
+    const allowedYears = ["2023", "2024", "2025", "2026"];
 
     if (!allowedYears.includes(year)) {
         return jsonResponse({
-            error: "Invalid season. Choose a year from 2022 to 2026."
+            error: "Invalid season. Choose a year from 2023 to 2026."
         }, 400);
     }
 
